@@ -3,6 +3,82 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const loginButton = document.getElementById("admin-login-button");
+  const loginModal = document.getElementById("login-modal");
+  const closeLoginModal = document.getElementById("close-login-modal");
+  const loginForm = document.getElementById("login-form");
+  const loginMessage = document.getElementById("login-message");
+  const teacherStatus = document.getElementById("teacher-status");
+
+  async function checkLoginState() {
+    try {
+      const response = await fetch("/teachers/me");
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      if (data.logged_in) {
+        teacherStatus.classList.remove("hidden");
+        teacherStatus.textContent = `Teacher: ${data.username}`;
+        loginButton.textContent = "Logout";
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  loginButton.addEventListener("click", async () => {
+    if (loginButton.textContent.trim() === "Logout") {
+      try {
+        await fetch("/logout", { method: "POST" });
+        loginButton.textContent = "👤 Login";
+        teacherStatus.classList.add("hidden");
+        messageDiv.textContent = "Logged out";
+        messageDiv.className = "info";
+        messageDiv.classList.remove("hidden");
+      } catch (error) {
+        console.error(error);
+      }
+      return;
+    }
+
+    loginModal.classList.remove("hidden");
+  });
+
+  closeLoginModal.addEventListener("click", () => {
+    loginModal.classList.add("hidden");
+  });
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(loginForm);
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        loginMessage.textContent = result.detail || "Login failed";
+        loginMessage.className = "message error";
+        loginMessage.classList.remove("hidden");
+        return;
+      }
+
+      loginModal.classList.add("hidden");
+      loginMessage.classList.add("hidden");
+      loginButton.textContent = "Logout";
+      teacherStatus.textContent = `Teacher: ${formData.get("username")}`;
+      teacherStatus.classList.remove("hidden");
+    } catch (error) {
+      loginMessage.textContent = "Failed to log in";
+      loginMessage.className = "message error";
+      loginMessage.classList.remove("hidden");
+    }
+  });
 
   // Function to fetch activities from API
   async function fetchActivities() {
